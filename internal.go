@@ -1,6 +1,7 @@
 package ddb
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -17,6 +18,41 @@ func verifyAPIKey(a Action) bool {
 		return true
 	}
 	return false
+}
+
+// handle the outgoing action
+func doAPIRequest(a Action, r *Result) {
+	b, err := msgpack.Marshal(a)
+
+	if err != nil {
+		r.Status = StatusFailed
+		logger.Log("Get", err.Error())
+		return
+	}
+	req, err := http.NewRequest("POST", os.Getenv("DB_ADDR"), bytes.NewBuffer(b))
+	if err != nil {
+		r.Status = StatusFailed
+		logger.Log("API", err.Error())
+		return
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		r.Status = StatusFailed
+		logger.Log("API", err.Error())
+		return
+	}
+	b, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		r.Status = StatusFailed
+		logger.Log("API", err.Error())
+		return
+	}
+	err = msgpack.Unmarshal(b, r)
+	if err != nil {
+		r.Status = StatusFailed
+		logger.Log("API", err.Error())
+		return
+	}
 }
 
 //handle incoming API requests

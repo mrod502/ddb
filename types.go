@@ -28,3 +28,8 @@ type Result struct {
 	Status int
 	Data   []byte
 }
+
+//Indexer - an indexable object that returns a unique ID
+type Indexer interface {
+	ID() []byte
+}
