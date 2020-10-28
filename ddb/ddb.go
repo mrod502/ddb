@@ -3,6 +3,7 @@ package ddb
 import (
 	"net/http"
 	"os"
+	"path"
 	"time"
 
 	badger "github.com/dgraph-io/badger/v2"
@@ -15,8 +16,8 @@ import (
 const ()
 
 var (
-	db     *badger.DB
-	config DBOptions
+	db          *badger.DB
+	userHomeDir string
 )
 
 func init() {
@@ -24,18 +25,24 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	userHomeDir, _ = os.UserHomeDir()
 
 }
 
 //OpenDB - open the database at path
 func OpenDB() (err error) {
 
-	db, err = badger.Open(badger.DefaultOptions(os.Getenv("DB_PATH")))
-
+	db, err = badger.Open(badger.DefaultOptions(path.Join(userHomeDir, os.Getenv("DB_PATH"))))
+	if err != nil {
+		return err
+	}
 	go func() {
 		for {
-			time.Sleep(time.Second * time.Duration(max(config.GCInterval, 60)))
-			db.RunValueLogGC(0.7)
+			time.Sleep(5 * time.Minute)
+			err = db.RunValueLogGC(0.7)
+			if err != nil {
+				logger.Log("GC", err.Error())
+			}
 
 		}
 	}()
@@ -71,7 +78,12 @@ func CloseDB() {
 func ServeTLS() {
 	var router = mux.NewRouter()
 	router.HandleFunc("/", handleRequests).Methods("POST")
-	http.ListenAndServeTLS(os.Getenv("SERVE_ADDR"), os.Getenv("CERT_FILE_PATH"), os.Getenv("KEY_FILE_PATH"), router)
+	for {
+		err := http.ListenAndServeTLS(os.Getenv("SERVE_ADDR"), os.Getenv("CERT_FILE_PATH"), os.Getenv("KEY_FILE_PATH"), router)
+		if err != nil {
+			logger.Log("Serve", err.Error())
+		}
+	}
 }
 
 //ServeDistributed -- future distributed server func
