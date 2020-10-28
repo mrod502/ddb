@@ -1,13 +1,16 @@
 package ddb
 
 import (
-	"encoding/json"
 	"net/http"
+	"os"
 	"time"
 
 	badger "github.com/dgraph-io/badger/v2"
 	"github.com/gorilla/mux"
 	"github.com/mrod502/logger"
+	msgpack "github.com/vmihailenco/msgpack/v5"
+
+	"github.com/joho/godotenv"
 )
 
 const ()
@@ -17,11 +20,18 @@ var (
 	config DBOptions
 )
 
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+}
+
 //OpenDB - open the database at path
 func OpenDB(options []byte) (err error) {
-	err = json.Unmarshal(options, &config)
+	err = msgpack.Unmarshal(options, &config)
 	if err != nil {
-		logger.Log("DB", err.Error())
+		panic(err)
 	}
 	db, err = badger.Open(badger.DefaultOptions(config.Path))
 
@@ -60,20 +70,12 @@ func CloseDB() {
 	}
 }
 
-func Serve() {
+//ServeTLS - serve the DB somewhere
+func ServeTLS() {
 	var router = mux.NewRouter()
 	router.HandleFunc("/", handleRequests).Methods("POST")
+	http.ListenAndServeTLS(os.Getenv("SERVE_ADDR"), os.Getenv("CERT_FILE_PATH"), os.Getenv("KEY_FILE_PATH"), router)
 }
 
+//ServeDistributed -- future distributed server func
 func ServeDistributed() {}
-
-func handleRequests(w http.ResponseWriter, r *http.Request) {
-
-}
-
-type DBAction struct {
-	APIKey     string
-	ActionType int
-	Key        []byte
-	Value      []byte
-}
