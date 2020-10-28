@@ -8,7 +8,6 @@ import (
 	badger "github.com/dgraph-io/badger/v2"
 	"github.com/gorilla/mux"
 	"github.com/mrod502/logger"
-	msgpack "github.com/vmihailenco/msgpack/v5"
 
 	"github.com/joho/godotenv"
 )
@@ -25,15 +24,13 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
 }
 
 //OpenDB - open the database at path
-func OpenDB(options []byte) (err error) {
-	err = msgpack.Unmarshal(options, &config)
-	if err != nil {
-		panic(err)
-	}
-	db, err = badger.Open(badger.DefaultOptions(config.Path))
+func OpenDB() (err error) {
+
+	db, err = badger.Open(badger.DefaultOptions(os.Getenv("DB_PATH")))
 
 	go func() {
 		for {
@@ -70,7 +67,7 @@ func CloseDB() {
 	}
 }
 
-//ServeTLS - serve the DB somewhere
+//ServeTLS - serve the DB
 func ServeTLS() {
 	var router = mux.NewRouter()
 	router.HandleFunc("/", handleRequests).Methods("POST")

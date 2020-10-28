@@ -12,6 +12,7 @@ const (
 const (
 	StatusOK int = iota
 	StatusFailed
+	StatusRejected
 )
 
 //Action - get, set, update, or delete value at key

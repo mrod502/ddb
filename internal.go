@@ -95,6 +95,7 @@ func get(a Action) (r Result) {
 	}
 	return
 }
+
 func del(a Action) (r Result) {
 	if len(a.Key) == 0 {
 		r.Status = StatusFailed
@@ -107,6 +108,7 @@ func del(a Action) (r Result) {
 	}
 	return
 }
+
 func upd(a Action) (r Result) {
 	err := db.Update(func(txn *badger.Txn) (err error) {
 		return txn.Set(a.Key, a.Value)
