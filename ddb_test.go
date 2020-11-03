@@ -26,8 +26,12 @@ func TestServer(t *testing.T) {
 	if res.Status != StatusOK {
 		t.Fatal("write failed")
 	}
-	r := Get(ts.ID())
-
+	var r Result
+	tNow := time.Now()
+	for i := 0; i < 100; i++ {
+		r = Get(ts.ID())
+	}
+	fmt.Println("average access time:", time.Since(tNow)/time.Duration(100))
 	var rstruct testStruct
 
 	err = msgpack.Unmarshal(r.Data, &rstruct)
