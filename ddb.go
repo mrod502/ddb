@@ -1,6 +1,7 @@
 package ddb
 
 import (
+	"crypto/tls"
 	"net/http"
 	"os"
 	"path"
@@ -21,6 +22,7 @@ var (
 )
 
 func init() {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	err := godotenv.Load()
 	if err != nil {
 		panic(err)
@@ -41,7 +43,7 @@ func OpenDB() (err error) {
 			time.Sleep(5 * time.Minute)
 			err = db.RunValueLogGC(0.7)
 			if err != nil {
-				logger.Log("GC", err.Error())
+				logger.Error("GC", err.Error())
 			}
 
 		}
@@ -70,18 +72,18 @@ func max(in ...int64) int64 {
 func CloseDB() {
 	err := db.Close()
 	if err != nil {
-		logger.Log("CloseDB", err.Error())
+		logger.Error("CloseDB", err.Error())
 	}
 }
 
 //ServeTLS - serve the DB
 func ServeTLS() {
 	var router = mux.NewRouter()
-	router.HandleFunc("/", handleRequests).Methods("POST")
+	router.HandleFunc("/", handleRequests) //.Methods("POST")
 	for {
-		err := http.ListenAndServeTLS(os.Getenv("SERVE_ADDR"), os.Getenv("CERT_FILE_PATH"), os.Getenv("KEY_FILE_PATH"), router)
+		err := http.ListenAndServeTLS(os.Getenv("PORT_ADDR"), os.Getenv("CERT_FILE_PATH"), os.Getenv("KEY_FILE_PATH"), router)
 		if err != nil {
-			logger.Log("Serve", err.Error())
+			logger.Error("Serve", err.Error())
 		}
 	}
 }

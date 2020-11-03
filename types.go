@@ -13,10 +13,12 @@ const (
 	StatusOK int = iota
 	StatusFailed
 	StatusRejected
+	StatusFailedUnmarshal
 )
 
 //Action - get, set, update, or delete value at key
 type Action struct {
+	_msgpack   struct{} `msgpack:",omitempty"`
 	APIKey     string
 	ActionType int
 	Key        []byte

@@ -19,6 +19,25 @@ func Get(key []byte) (r Result) {
 	return
 }
 
+//GetPopulate -
+func GetPopulate(key []byte, obj interface{}) (r Result) {
+	var a Action
+
+	a.APIKey = os.Getenv("API_KEY")
+	a.Key = key
+	a.ActionType = ActionGet
+
+	doAPIRequest(a, &r)
+
+	err := msgpack.Unmarshal(r.Data, obj)
+
+	if err != nil {
+		r.Status = StatusFailedUnmarshal
+	}
+
+	return
+}
+
 //Set - set value at key
 func Set(ix Indexer) (r Result) {
 	var a Action

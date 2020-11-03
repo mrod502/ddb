@@ -2,6 +2,7 @@ package ddb
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -26,31 +27,34 @@ func doAPIRequest(a Action, r *Result) {
 
 	if err != nil {
 		r.Status = StatusFailed
-		logger.Log("Get", err.Error())
+		logger.Error("Get", err.Error())
 		return
 	}
-	req, err := http.NewRequest("POST", os.Getenv("DB_ADDR"), bytes.NewBuffer(b))
+	req, err := http.NewRequest("POST", os.Getenv("SERVE_ADDR"), bytes.NewBuffer(b))
+
 	if err != nil {
 		r.Status = StatusFailed
-		logger.Log("API", err.Error())
+		logger.Error("API", "create request", err.Error())
 		return
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		r.Status = StatusFailed
-		logger.Log("API", err.Error())
+		logger.Error("API", "do request", err.Error())
 		return
 	}
 	b, err = ioutil.ReadAll(res.Body)
 	if err != nil {
 		r.Status = StatusFailed
-		logger.Log("API", err.Error())
+		logger.Error("API", "read response", err.Error())
 		return
 	}
+	defer res.Body.Close()
 	err = msgpack.Unmarshal(b, r)
 	if err != nil {
 		r.Status = StatusFailed
-		logger.Log("API", err.Error())
+		logger.Error("API", "unmarshal", err.Error())
+		fmt.Println("RESPONSE:", string(b))
 		return
 	}
 }
@@ -80,7 +84,7 @@ func handleRequests(w http.ResponseWriter, r *http.Request) {
 
 	if !verifyAPIKey(action) {
 		result.Status = StatusRejected
-		logger.Log("API", "bad Key", action.APIKey)
+		logger.Error("API", "bad Key", action.APIKey)
 		w.Write(resBytes)
 		return
 	}
@@ -99,6 +103,11 @@ func handleRequests(w http.ResponseWriter, r *http.Request) {
 	case ActionUpd:
 		result = upd(action)
 	}
+	b, err = msgpack.Marshal(result)
+	if err != nil {
+		logger.Error("DB", "send", err.Error())
+	}
+	w.Write(b)
 
 }
 
@@ -108,7 +117,7 @@ func set(a Action) (r Result) {
 		return txn.Set(a.Key, a.Value)
 	})
 	if err != nil {
-		logger.Log("Update", err.Error())
+		logger.Error("Update", err.Error())
 		r.Status = StatusFailed
 	}
 	return
@@ -127,8 +136,9 @@ func get(a Action) (r Result) {
 	})
 	if err != nil {
 		r.Status = StatusFailed
-		logger.Log("Get", err.Error())
+		logger.Error("Get", err.Error())
 	}
+
 	return
 }
 
@@ -139,7 +149,7 @@ func del(a Action) (r Result) {
 	}
 	err := db.DropPrefix(a.Key)
 	if err != nil {
-		logger.Log("Del", err.Error())
+		logger.Error("Del", err.Error())
 		r.Status = StatusFailed
 	}
 	return
@@ -150,7 +160,7 @@ func upd(a Action) (r Result) {
 		return txn.Set(a.Key, a.Value)
 	})
 	if err != nil {
-		logger.Log("Update", err.Error())
+		logger.Error("Update", err.Error())
 		r.Status = StatusFailed
 	}
 	return
