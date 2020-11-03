@@ -1,9 +1,9 @@
-#Overview
+# Overview
 
-#client
+# client
 Use the functions in `api.go`.
 
-#server example
+# server example
 ```go
 func main(){
     OpenDB() 
@@ -14,7 +14,7 @@ func main(){
 }
 ```
 
-#Client example
+# Client example
 ```go
 type Value struct{
     UID string
