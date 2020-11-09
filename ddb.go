@@ -23,12 +23,12 @@ var (
 
 func init() {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	err := godotenv.Load()
+
+	userHomeDir, _ = os.UserHomeDir()
+	err := godotenv.Load(path.Join(userHomeDir, ".env"))
 	if err != nil {
 		panic(err)
 	}
-	userHomeDir, _ = os.UserHomeDir()
-
 }
 
 //OpenDB - open the database at path
@@ -90,3 +90,5 @@ func ServeTLS() {
 
 //ServeDistributed -- future distributed server func
 func ServeDistributed() {}
+
+func pushUpdates() {}
