@@ -29,7 +29,7 @@ func TestServer(t *testing.T) {
 	var r Result
 	tNow := time.Now()
 	for i := 0; i < 100; i++ {
-		r = Get(ts.ID())
+		r = Get(Key(ts))
 	}
 	fmt.Println("average access time:", time.Since(tNow)/time.Duration(100))
 	var rstruct testStruct
@@ -49,4 +49,7 @@ type testStruct struct {
 
 func (t testStruct) ID() []byte {
 	return []byte(t.UID)
+}
+func (t testStruct) Type() []byte {
+	return []byte("t")
 }

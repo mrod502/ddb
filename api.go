@@ -48,7 +48,7 @@ func Set(ix Indexer) (r Result) {
 	}
 	a.Value = b
 	a.APIKey = os.Getenv("API_KEY")
-	a.Key = ix.ID()
+	a.Key = Key(ix)
 	a.ActionType = ActionSet
 
 	doAPIRequest(a, &r)

@@ -34,4 +34,13 @@ type Result struct {
 //Indexer - an indexable object that returns a unique ID
 type Indexer interface {
 	ID() []byte
+	Type() []byte
+}
+
+//Key in database
+func Key(i Indexer) (b []byte) {
+	b = append(b, i.Type()...)
+	b = append(b, 36)
+	b = append(b, i.ID()...)
+	return b
 }
