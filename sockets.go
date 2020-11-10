@@ -27,12 +27,15 @@ var (
 	ErrUnsubscribe  = errors.New("unsubscribed")
 )
 
+//Client -
 type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
+	hub           *Hub
+	conn          *websocket.Conn
+	send          chan []byte
+	Subscriptions []string
 }
 
+//Hub -
 type Hub struct {
 	clients        map[*Client]bool
 	broadcast      chan []byte
@@ -43,23 +46,39 @@ type Hub struct {
 }
 
 func newHub(f func([]byte) error) *Hub {
-	return &Hub{
+	h := &Hub{
 		broadcast:      make(chan []byte),
 		register:       make(chan *Client),
 		unregister:     make(chan *Client),
 		clients:        make(map[*Client]bool),
 		readHandleFunc: f,
 	}
+	h.serve()
+
+	return h
 }
 
 func wssServe(h *Hub, w http.ResponseWriter, r *http.Request) {
+	var dbs DBSubscription
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logger.Error("Sockets", "Upgrade", err.Error())
 	}
-	client := &Client{hub: h, conn: conn}
+	/*
+			b, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				logger.Error("wssServe", "failed upgrade", err.Error())
+				return
+			}
+
+			defer r.Body.Close()
+
+		_ = json.Unmarshal(b, &dbs)
+	*/
+	client := &Client{hub: h, conn: conn, send: make(chan []byte, 8), Subscriptions: dbs.Endpoints}
 	client.hub.register <- client
 	go client.write()
+	go client.read()
 }
 
 func checkOrigin(r *http.Request) bool {
@@ -72,7 +91,9 @@ func (h *Hub) serve() {
 		case msg := <-h.broadcast:
 			h.mux.RLock()
 			for client := range h.clients {
-				client.send <- msg
+				if len(client.Subscriptions) == 0 {
+					client.send <- msg
+				}
 			}
 			h.mux.RUnlock()
 		case client := <-h.register:
@@ -108,7 +129,6 @@ func (c *Client) read() {
 
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-	c.conn.SetPingHandler(DefaultPingHandler)
 
 	for {
 		_, msg, err := c.conn.ReadMessage()
@@ -129,11 +149,7 @@ func (c *Client) read() {
 
 }
 
+//DBSubscription -
 type DBSubscription struct {
 	Endpoints []string
-}
-
-func DefaultPingHandler(s string) error {
-
-	return nil
 }

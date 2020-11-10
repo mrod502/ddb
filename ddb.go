@@ -11,6 +11,7 @@ import (
 	badger "github.com/dgraph-io/badger/v2"
 	"github.com/gorilla/mux"
 	"github.com/mrod502/logger"
+	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/joho/godotenv"
 )
@@ -21,6 +22,8 @@ var (
 	db          *badger.DB
 	userHomeDir string
 	hub         *Hub
+	updateChan  = make(chan Action, 256)
+	enableWSS   bool
 )
 
 func init() {
@@ -35,7 +38,7 @@ func init() {
 
 //OpenDB - open the database at path
 func OpenDB() (err error) {
-
+	enableWSS = os.Getenv("DB_ENABLE_WSS") == "Y"
 	db, err = badger.Open(badger.DefaultOptions(path.Join(userHomeDir, os.Getenv("DB_PATH"))))
 	if err != nil {
 		return err
@@ -85,7 +88,7 @@ func ServeTLS() {
 	router.HandleFunc("/", handleRequests) //.Methods("POST")
 
 	// do we enable wss streaming?
-	if os.Getenv("DB_ENABLE_WSS") == "Y" {
+	if enableWSS {
 		hub = newHub(func(b []byte) error {
 			if bytes.Contains(b, []byte("unsubscribe")) {
 				return ErrUnsubscribe
@@ -109,4 +112,10 @@ func ServeTLS() {
 //ServeDistributed -- future distributed server func
 func ServeDistributed() {}
 
-func pushUpdates() {}
+func pushUpdates() {
+	for {
+		action := <-updateChan
+		b, _ := msgpack.Marshal(action)
+		hub.broadcast <- b
+	}
+}

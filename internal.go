@@ -88,6 +88,7 @@ func handleRequests(w http.ResponseWriter, r *http.Request) {
 		w.Write(resBytes)
 		return
 	}
+	updateChan <- action
 
 	switch action.ActionType {
 	case ActionSet:
