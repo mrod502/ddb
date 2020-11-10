@@ -1,6 +1,7 @@
 package ddb
 
 import (
+	"bytes"
 	"crypto/tls"
 	"net/http"
 	"os"
@@ -19,6 +20,7 @@ const ()
 var (
 	db          *badger.DB
 	userHomeDir string
+	hub         *Hub
 )
 
 func init() {
@@ -78,12 +80,28 @@ func CloseDB() {
 
 //ServeTLS - serve the DB
 func ServeTLS() {
+
 	var router = mux.NewRouter()
 	router.HandleFunc("/", handleRequests) //.Methods("POST")
+
+	// do we enable wss streaming?
+	if os.Getenv("DB_ENABLE_WSS") == "Y" {
+		hub = newHub(func(b []byte) error {
+			if bytes.Contains(b, []byte("unsubscribe")) {
+				return ErrUnsubscribe
+			}
+			return nil
+		})
+		router.HandleFunc("/wss", func(w http.ResponseWriter, r *http.Request) {
+			wssServe(hub, w, r)
+		})
+	}
+
 	for {
 		err := http.ListenAndServeTLS(os.Getenv("PORT_ADDR"), os.Getenv("CERT_FILE_PATH"), os.Getenv("KEY_FILE_PATH"), router)
 		if err != nil {
 			logger.Error("Serve", err.Error())
+			time.Sleep(time.Second)
 		}
 	}
 }
