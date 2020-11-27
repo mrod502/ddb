@@ -8,5 +8,6 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/joho/godotenv v1.3.0
 	github.com/mrod502/logger v1.0.0
-	github.com/vmihailenco/msgpack/v5 v5.0.0-rc.2
+	
+	github.com/vmihailenco/msgpack/v5 v5.0.0
 )

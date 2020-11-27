@@ -40,7 +40,7 @@ type Indexer interface {
 //Key in database
 func Key(i Indexer) (b []byte) {
 	b = append(b, i.Type()...)
-	b = append(b, 36)
+	b = append(b, byte('^'))
 	b = append(b, i.ID()...)
 	return b
 }
